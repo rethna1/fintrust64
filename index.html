@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Goal Planner – FinTrust Creations</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --green-dark:#2e7d32;
+    --green-light:#9ccc65;
+    --accent-thumb:#4caf50;
+    --label-bg:#ebebeb;
+    --header-bg:#b4e49a;
+    --footer-bg:#f9f9f9;
+    --bar-fill:#000;
+    --bar-bg:#e0e0e0;
+    --divider:#e6e6e6;
+  }
+
+  body {
+    margin:0;
+    background:#f7f7f7;
+    font-family:"Segoe UI", Roboto, Arial, sans-serif;
+  }
+
+  .calculator {
+    width:380px;
+    max-width:calc(100% - 24px);
+    margin:20px auto;
+    background:#fff;
+    border-radius:8px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.08);
+    overflow:hidden;
+  }
+
+  .header {
+    display:flex;
+    align-items:center;
+    padding:10px 14px;
+    background:#fff;
+    border-bottom:1px solid #eaeaea;
+  }
+
+  .round-logo {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,var(--green-dark),var(--green-light));
+    color:#fff;
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    font-weight:700;
+    text-align:center;
+    box-shadow:0 3px 8px rgba(0,0,0,0.15);
+    margin-right:12px;
+  }
+
+  .logo-initials{ font-size:1.2rem; line-height:1; }
+  .logo-text{ font-size:0.45rem; margin-top:1px; line-height:1.1; font-weight:600; text-transform:uppercase; }
+
+  .header h1 {
+    margin:0;
+    font-size:18px;
+    font-weight:400;
+    color:#222;
+  }
+
+  .fields { padding:14px; }
+
+  .field {
+    padding:12px 0;
+    border-bottom:1px solid #f3f3f3;
+  }
+
+  .field label {
+    display:block;
+    margin-bottom:8px;
+    color:#333;
+    font-size:14px;
+    font-weight:600;
+  }
+
+  .input-group {
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:#fff;
+    border:1px solid #d2d2d2;
+    border-radius:6px;
+    overflow:hidden;
+  }
+
+  .input-group span {
+    background:var(--label-bg);
+    color:#333;
+    padding:9px 14px;
+    font-weight:600;
+    font-size:14px;
+    min-width:44px;
+    text-align:center;
+  }
+
+  /* ✅ Prevent mobile zoom by keeping font-size ≥ 16px */
+  .input-group input[type="number"], 
+  .input-group select {
+    border:0;
+    width:100%;
+    font-size:16px; /* <- FIXED HERE */
+    padding:10px;
+    background:#fff;
+    outline:none;
+    -moz-appearance:textfield;
+    color:#222;
+    font-weight:500;
+  }
+
+  .range {
+    width:100%;
+    height:10px;
+    margin-top:12px;
+    -webkit-appearance:none;
+    appearance:none;
+    border-radius:5px;
+    background:linear-gradient(to right, var(--bar-fill) 0%, var(--bar-bg) 0%);
+    outline:none;
+    transition:0.2s;
+  }
+
+  .range::-webkit-slider-thumb {
+    -webkit-appearance:none;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--accent-thumb);
+    border:3px solid #fff;
+    cursor:pointer;
+    margin-top:-2px;
+    box-shadow:0 0 8px rgba(0,0,0,0.35);
+  }
+
+  .result-header {
+    background:var(--header-bg);
+    text-align:center;
+    color:#2a2a2a;
+    padding:14px;
+    font-size:18px;
+    font-weight:600;
+    position:relative;
+  }
+
+  #resetBtn {
+    display:none;
+    position:absolute;
+    right:12px;
+    top:50%;
+    transform:translateY(-50%);
+    background:var(--green-dark);
+    color:#fff;
+    border:none;
+    border-radius:5px;
+    padding:5px 10px;
+    font-size:13px;
+    cursor:pointer;
+  }
+
+  #resetBtn:hover { background:#1b5e20; }
+
+  .result-row {
+    padding:16px 20px;
+    border-bottom:1px solid var(--divider);
+  }
+
+  .result-row:last-child { border-bottom:none; }
+
+  .result-row .label { color:#333; font-weight:400; display:block; }
+  .result-row .value {
+    font-size:24px;
+    font-weight:700;
+    color:#000;
+    display:block;
+    margin-top:6px;
+  }
+
+  .chart-section {
+    padding:18px 0;
+    border-top:1px solid #e5e5e5;
+    border-bottom:1px solid #e5e5e5;
+    text-align:center;
+    background:#fff;
+  }
+
+  .chart-container {
+    width:250px;
+    height:230px;
+    margin:0 auto;
+    position:relative;
+  }
+
+  .chart-center {
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    text-align:center;
+    font-size:15px;
+    color:#000;
+    font-weight:600;
+    line-height:1.3;
+    pointer-events:none;
+  }
+
+  .chart-center .label {
+    display:block;
+    font-size:12px;
+    color:#555;
+    font-weight:500;
+  }
+
+  .chart-legend {
+    margin-top:8px;
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    font-size:13px;
+    color:#333;
+  }
+
+  .legend-box { width:12px; height:12px; display:inline-block; margin-right:6px; vertical-align:middle; }
+
+  .table-wrapper {
+    margin:12px 14px 18px;
+    border-radius:8px;
+    border:1px solid #eee;
+    max-height:250px;
+    overflow:auto;
+  }
+
+  table { width:100%; border-collapse:collapse; min-width:600px; }
+  th, td { padding:8px 10px; border-bottom:1px solid #f1f1f1; text-align:center; font-size:13px; }
+  th {
+    background:#fafafa;
+    font-weight:700;
+    color:#333;
+    position:sticky;
+    top:0;
+    z-index:2;
+  }
+
+  .card-footer {
+    font-size:11px;
+    color:#333;
+    padding:12px 12px 18px;
+    background:var(--footer-bg);
+    border-top:1px solid #ccc;
+    text-align:justify;
+    line-height:1.45;
+    letter-spacing:0.2px;
+  }
+
+  .copyright { text-align:center; margin-top:6px; font-size:11px; color:#333; font-weight:500; }
+
+  @media (max-width:420px){
+    .calculator { width:calc(100% - 16px); margin:12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="calculator" id="plannerApp">
+  <div class="header">
+  <div class="round-logo">
+    <span class="logo-initials">FM</span>
+    <span class="logo-text">Fintrust Distribution</span>
+  </div>
+  <h1>Goal Planner </h1>
+</div>
+
+  <div class="fields">
+    <div class="field">
+      <label>Goal Amount (Future Value)</label>
+      <div class="input-group">
+        <span>₹</span>
+        <input type="number" id="goalAmount" value="5000000" min="0" inputmode="decimal" />
+      </div>
+      <input id="goalRange" class="range" type="range" min="10000" max="100000000" step="10000" value="5000000" />
+    </div>
+
+    <div class="field">
+      <label>Years to Goal</label>
+      <div class="input-group">
+        <span>Years</span>
+        <input type="number" id="yearsLeft" value="20" min="1" inputmode="numeric" />
+      </div>
+      <input id="yearsRange" class="range" type="range" min="1" max="40" step="1" value="20" />
+    </div>
+
+    <div class="field">
+      <label>Expected Return (annual %)</label>
+      <div class="input-group">
+        <span>%</span>
+        <input type="number" id="expectedReturn" value="12" step="0.1" min="0" inputmode="decimal" />
+      </div>
+      <input id="returnRange" class="range" type="range" min="0.1" max="25" step="0.1" value="12" />
+    </div>
+
+    <div class="field">
+      <label>Annual Step-up (%)</label>
+      <div class="input-group">
+        <span>%</span>
+        <input type="number" id="stepup" value="0" step="0.1" min="0" inputmode="decimal" />
+      </div>
+      <input id="stepupRange" class="range" type="range" min="0" max="50" step="0.5" value="0" />
+    </div>
+  </div>
+
+  <div class="result-header">
+    Your Goal Summary
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <div class="result">
+    <div class="result-row"><span class="label">Monthly SIP Required</span><span class="value" id="monthlySIP">₹0</span></div>
+    <div class="result-row"><span class="label">Total Invested</span><span class="value" id="totalInvested">₹0</span></div>
+    <div class="result-row"><span class="label">Wealth Created (Gain)</span><span class="value" id="wealthCreated">₹0</span></div>
+  </div>
+
+  <div class="chart-section">
+    <div class="chart-container">
+      <canvas id="goalChart"></canvas>
+      <div class="chart-center"><span class="label">Goal Value</span><span id="centerVal">₹0</span></div>
+    </div>
+    <div class="chart-legend">
+      <span><span class="legend-box" style="background:#2e7d32"></span>Invested</span>
+      <span><span class="legend-box" style="background:#9ccc65"></span>Gain</span>
+    </div>
+  </div>
+
+  <div class="table-wrapper" id="yearTable"></div>
+
+  <div class="card-footer">
+    Disclaimer: This goal planner provides estimated projections based on the inputs. Actual returns may vary depending on market conditions and fund performance. Mutual Fund investments are subject to market risks. Please read scheme documents carefully before investing.
+    <div class="copyright">© <span id="year"></span> FinTrust MF Distribution | All Rights Reserved</div>
+  </div>
+</div>
+
+<script>
+const goalAmount=document.getElementById('goalAmount'),yearsLeft=document.getElementById('yearsLeft'),
+expectedReturn=document.getElementById('expectedReturn'),stepup=document.getElementById('stepup');
+const goalRange=document.getElementById('goalRange'),yearsRange=document.getElementById('yearsRange'),
+returnRange=document.getElementById('returnRange'),stepupRange=document.getElementById('stepupRange');
+const monthlySIPEl=document.getElementById('monthlySIP'),totalInvestedEl=document.getElementById('totalInvested'),
+wealthCreatedEl=document.getElementById('wealthCreated'),centerVal=document.getElementById('centerVal'),
+yearTable=document.getElementById('yearTable'),resetBtn=document.getElementById('resetBtn');
+
+function fmtINR(n){return "₹" + Math.round(n).toLocaleString('en-IN');}
+
+function updateRangeBackground(i){
+  const v=(Number(i.value)-Number(i.min))/(Number(i.max)-Number(i.min))*100;
+  i.style.background=`linear-gradient(to right, var(--bar-fill) ${v}%, var(--bar-bg) ${v}%)`;
+}
+
+const ctx=document.getElementById('goalChart').getContext('2d');
+const goalChart=new Chart(ctx,{type:'doughnut',data:{labels:['Invested','Gain'],
+datasets:[{data:[0,0],backgroundColor:['#2e7d32','#9ccc65'],borderColor:'#fff',borderWidth:2}]},
+options:{cutout:'70%',plugins:{legend:{display:false}},maintainAspectRatio:false}});
+
+function calculateAndRender(){
+  const goal=+goalAmount.value||0,yrs=+yearsLeft.value||1,annual=+expectedReturn.value/100,
+  monthlyRate=annual/12,months=yrs*12,stepPercent=+stepup.value/100;
+  let monthlyInvestment=goal/(((Math.pow(1+monthlyRate,months)-1)/monthlyRate)*(1+monthlyRate));
+  let monthly=monthlyInvestment,investedTotal=0,future=0,table=[];
+  for(let y=1;y<=yrs;y++){
+    for(let m=1;m<=12;m++){future=(future+monthly)*(1+monthlyRate);investedTotal+=monthly;}
+    table.push({year:y,invested:Math.round(investedTotal),future:Math.round(future),gain:Math.round(future-investedTotal)});
+    monthly*=(1+stepPercent);
+  }
+  const wealthCreated=future-investedTotal;
+  monthlySIPEl.innerHTML=fmtINR(monthlyInvestment);
+  totalInvestedEl.innerHTML=fmtINR(investedTotal);
+  wealthCreatedEl.innerHTML=fmtINR(wealthCreated);
+  centerVal.innerHTML=fmtINR(goal);
+  goalChart.data.datasets[0].data=[investedTotal,wealthCreated];
+  goalChart.update();
+  let html='<table><thead><tr><th>Year</th><th>Invested (₹)</th><th>Projected Value (₹)</th><th>Gain (₹)</th></tr></thead><tbody>';
+  for(const r of table){html+=`<tr><td>${r.year}</td><td>${r.invested.toLocaleString('en-IN')}</td><td>${r.future.toLocaleString('en-IN')}</td><td>${r.gain.toLocaleString('en-IN')}</td></tr>`;}
+  html+='</tbody></table>';
+  yearTable.innerHTML=html;
+}
+
+function resetAll(){
+  goalAmount.value=5000000;yearsLeft.value=20;expectedReturn.value=12;stepup.value=0;
+  goalRange.value=5000000;yearsRange.value=20;returnRange.value=12;stepupRange.value=0;
+  document.querySelectorAll('.range').forEach(updateRangeBackground);
+  calculateAndRender();
+  resetBtn.style.display='none';
+}
+
+document.querySelectorAll('.range').forEach(r=>{
+  updateRangeBackground(r);
+  r.addEventListener('input',()=>{
+    if(r===goalRange)goalAmount.value=r.value;
+    if(r===yearsRange)yearsLeft.value=r.value;
+    if(r===returnRange)expectedReturn.value=r.value;
+    if(r===stepupRange)stepup.value=r.value;
+    calculateAndRender();
+    resetBtn.style.display='inline-block';
+  });
+});
+
+[goalAmount,yearsLeft,expectedReturn,stepup].forEach(e=>{
+  e.addEventListener('input',()=>{
+    if(e===goalAmount)goalRange.value=e.value;
+    if(e===yearsLeft)yearsRange.value=e.value;
+    if(e===expectedReturn)returnRange.value=e.value;
+    if(e===stepup)stepupRange.value=e.value;
+    document.querySelectorAll('.range').forEach(updateRangeBackground);
+    calculateAndRender();
+    resetBtn.style.display='inline-block';
+  });
+});
+
+resetBtn.onclick=resetAll;
+document.getElementById('year').textContent=new Date().getFullYear();
+
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('.range').forEach(updateRangeBackground);
+  calculateAndRender();
+});
+</script>
+  <!-- Floating Round Back Button -->
+<a href="https://rethna1.github.io/fintrust60/" class="round-back-btn" title="Back to Main Page">←</a>
+
+<style>
+.round-back-btn {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2e7d32, #66bb6a);
+  color: #fff;
+  font-size: 22px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+  z-index: 9999;
+  transition: all 0.25s ease;
+}
+.round-back-btn:hover {
+  transform: scale(1.1);
+  background: linear-gradient(135deg, #1b5e20, #81c784);
+}
+</style>
+</body>
+</html>
